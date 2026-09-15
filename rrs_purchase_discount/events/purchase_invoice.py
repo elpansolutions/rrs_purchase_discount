@@ -13,6 +13,7 @@ def validate_purchase_invoice(doc, method=None):
 	"""
 	Hook for Purchase Invoice validate event.
 	Enforces item-level discount calculations while strictly preserving the original item Rate.
+	Both Discount % and Flat Discount Amount are independent.
 	"""
 	settings = frappe.get_cached_doc("Purchase Discount Settings")
 	if not cint(settings.enable_purchase_item_discount):
@@ -20,7 +21,6 @@ def validate_purchase_invoice(doc, method=None):
 
 	has_custom_discount = False
 	total_custom_discount = 0.0
-
 	conversion_rate = flt(doc.conversion_rate or 1.0)
 
 	for item in doc.get("items", []):
@@ -46,45 +46,44 @@ def validate_purchase_invoice(doc, method=None):
 				title=_("Invalid Discount"),
 			)
 
-		if disc_amt > gross_amount:
+		# Compute total row discount from both independent inputs
+		pct_discount = (
+			flt(gross_amount * (disc_pct / 100.0), item.precision("custom_item_discount_amount") or 2)
+			if disc_pct > 0
+			else 0.0
+		)
+		total_row_disc = flt(
+			pct_discount + disc_amt,
+			item.precision("custom_item_discount_amount") or 2,
+		)
+
+		if total_row_disc > gross_amount:
 			frappe.throw(
 				_(
-					"Row #{0}: Item Discount Amount ({1}) cannot be greater than Item Gross Amount ({2})."
-				).format(item.idx, disc_amt, gross_amount),
+					"Row #{0}: Total Item Discount ({1}) cannot be greater than Item Gross Amount ({2})."
+				).format(item.idx, total_row_disc, gross_amount),
 				title=_("Discount Exceeds Gross Amount"),
 			)
 
 		# Clear native discount fields if custom discount is active
-		if disc_amt > 0 or disc_pct > 0:
+		if total_row_disc > 0:
 			item.discount_percentage = 0.0
 			item.discount_amount = 0.0
 
-		# Bi-directional sync
-		if disc_pct > 0 and disc_amt == 0:
-			disc_amt = flt(
-				gross_amount * (disc_pct / 100.0),
-				item.precision("custom_item_discount_amount") or 2,
-			)
-		elif disc_amt > 0 and gross_amount > 0:
-			disc_pct = flt(
-				(disc_amt / gross_amount) * 100.0,
-				item.precision("custom_item_discount_percentage") or 2,
-			)
-
 		net_amount = flt(
-			gross_amount - disc_amt,
+			gross_amount - total_row_disc,
 			item.precision("custom_item_net_amount") or item.precision("net_amount") or 2,
 		)
 
-		# Store values
+		# Store values (Preserving user's % and flat amount inputs independently)
 		item.custom_item_gross_amount = gross_amount
 		item.custom_item_discount_amount = disc_amt
 		item.custom_item_discount_percentage = disc_pct
 		item.custom_item_net_amount = net_amount
 
-		if disc_amt > 0 or disc_pct > 0:
+		if total_row_disc > 0:
 			has_custom_discount = True
-			total_custom_discount += disc_amt
+			total_custom_discount += total_row_disc
 
 		# Invariant: item.rate and item.base_rate are NEVER modified
 		item.net_amount = net_amount
@@ -293,15 +292,17 @@ def make_purchase_discount_gl_entries(gl_entries, doc):
 	# Increase expense debit entries by discount amount
 	for gle in gl_entries:
 		for item in doc.get("items", []):
-			if gle.get("account") == item.expense_account and flt(item.custom_item_discount_amount) > 0:
-				item_disc_base = flt(
-					flt(item.custom_item_discount_amount) * conversion_rate,
-					item.precision("base_net_amount") or 2,
-				)
-				if gle.get("debit"):
-					gle["debit"] = flt(gle["debit"]) + item_disc_base
-					gle["debit_in_account_currency"] = flt(gle.get("debit_in_account_currency", 0.0)) + flt(item.custom_item_discount_amount)
-					gle["debit_in_transaction_currency"] = flt(gle.get("debit_in_transaction_currency", 0.0)) + flt(item.custom_item_discount_amount)
+			if gle.get("account") == item.expense_account:
+				item_disc = flt(item.custom_item_gross_amount - item.custom_item_net_amount)
+				if item_disc > 0:
+					item_disc_base = flt(
+						item_disc * conversion_rate,
+						item.precision("base_net_amount") or 2,
+					)
+					if gle.get("debit"):
+						gle["debit"] = flt(gle["debit"]) + item_disc_base
+						gle["debit_in_account_currency"] = flt(gle.get("debit_in_account_currency", 0.0)) + item_disc
+						gle["debit_in_transaction_currency"] = flt(gle.get("debit_in_transaction_currency", 0.0)) + item_disc
 
 	# Add Credit entry for Purchase Discount Account
 	account_currency = frappe.get_cached_value("Account", discount_account, "account_currency") or doc.company_currency
