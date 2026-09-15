@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "creation": "2026-09-15 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_purchase_item_discount",
+  "section_break_accounting",
+  "enable_separate_discount_accounting",
+  "default_purchase_discount_account",
+  "company_accounts"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enable_purchase_item_discount",
+   "fieldtype": "Check",
+   "label": "Enable Item-Level Purchase Discount",
+   "description": "When enabled, item-level purchase discount is active on Purchase Invoices."
+  },
+  {
+   "fieldname": "section_break_accounting",
+   "fieldtype": "Section Break",
+   "label": "Discount Accounting"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_separate_discount_accounting",
+   "fieldtype": "Check",
+   "label": "Enable Separate Purchase Discount Accounting",
+   "description": "If enabled, purchase expense is debited at Gross and the discount amount is credited to the Purchase Discount Account. If disabled (default), purchase expense is debited at Net amount."
+  },
+  {
+   "depends_on": "eval:doc.enable_separate_discount_accounting==1",
+   "fieldname": "default_purchase_discount_account",
+   "fieldtype": "Link",
+   "label": "Default Purchase Discount Account",
+   "options": "Account",
+   "description": "Default Chart of Accounts head to credit purchase discounts."
+  },
+  {
+   "depends_on": "eval:doc.enable_separate_discount_accounting==1",
+   "fieldname": "company_accounts",
+   "fieldtype": "Table",
+   "label": "Company Specific Discount Accounts",
+   "options": "Purchase Discount Account Company"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Purchase Discount",
+ "name": "Purchase Discount Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,19 @@
+[project]
+name = "rrs_purchase_discount"
+authors = [
+    { name = "RRS", email = "info@example.com"}
+]
+description = "Item-level purchase discount for ERPNext that reduces payable and taxable amounts while preserving original item rates."
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    # "frappe~=16.0.0"
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "rrs_purchase_discount"
