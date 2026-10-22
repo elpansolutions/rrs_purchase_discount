@@ -7,14 +7,12 @@ app_license = "MIT"
 
 # Includes in <head>
 # ------------------
-
-# include js, css files in header of desk.html
-# app_include_css = "/assets/rrs_purchase_discount/css/rrs_purchase_discount.css"
-# app_include_js = "/assets/rrs_purchase_discount/js/rrs_purchase_discount.js"
+app_include_js = "/assets/rrs_purchase_discount/js/purchase_invoice.js?v=20261022_1"
 
 # DocType JavaScript
 doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
+	"Purchase Receipt": "public/js/purchase_invoice.js",
 }
 
 # Document Events
@@ -23,6 +21,11 @@ doctype_js = {
 
 doc_events = {
 	"Purchase Invoice": {
+		"validate": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",
+		"before_save": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",
+		"before_submit": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",
+	},
+	"Purchase Receipt": {
 		"validate": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",
 		"before_save": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",
 		"before_submit": "rrs_purchase_discount.events.purchase_invoice.validate_purchase_invoice",

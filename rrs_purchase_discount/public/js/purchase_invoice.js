@@ -7,7 +7,7 @@
 			// Call original calculation
 			orig_calculate_item_values.apply(this, arguments);
 
-			if (this.frm && this.frm.doc && this.frm.doc.doctype === "Purchase Invoice") {
+			if (this.frm && this.frm.doc && (this.frm.doc.doctype === "Purchase Invoice" || this.frm.doc.doctype === "Purchase Receipt")) {
 				let total_discount = 0.0;
 
 				for (const item of this.frm.doc.items || []) {
@@ -47,17 +47,20 @@
 	}
 })();
 
-frappe.ui.form.on("Purchase Invoice", {
-	refresh: function (frm) {
-		// Ensure summary fields are visible and updated
-	},
+["Purchase Invoice", "Purchase Receipt"].forEach(function(dt) {
+	frappe.ui.form.on(dt, {
+		refresh: function (frm) {
+			// Ensure summary fields are visible and updated
+		},
+	});
 });
 
-frappe.ui.form.on("Purchase Invoice Item", {
-	qty: function (frm, cdt, cdn) {
-		calculate_custom_item_discount(frm, cdt, cdn);
-	},
-	rate: function (frm, cdt, cdn) {
+["Purchase Invoice Item", "Purchase Receipt Item"].forEach(function(item_dt) {
+	frappe.ui.form.on(item_dt, {
+		qty: function (frm, cdt, cdn) {
+			calculate_custom_item_discount(frm, cdt, cdn);
+		},
+		rate: function (frm, cdt, cdn) {
 		calculate_custom_item_discount(frm, cdt, cdn);
 	},
 	custom_item_discount_percentage: function (frm, cdt, cdn) {
@@ -89,6 +92,7 @@ frappe.ui.form.on("Purchase Invoice Item", {
 		}
 		calculate_custom_item_discount(frm, cdt, cdn);
 	},
+	});
 });
 
 function calculate_custom_item_discount(frm, cdt, cdn) {
